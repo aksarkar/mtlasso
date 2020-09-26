@@ -1,0 +1,51 @@
+* Multi-task lasso
+
+Fit a multi-task lasso model with combined lasso (within task) and group lasso
+(across tasks) penalties.
+
+References:
+
+- Lee et al. "Adaptive Multi-Task Lasso: with Application to eQTL Detection"
+  NIPS 2010
+
+- Hu et al. "A statistical framework for cross-tissue transcriptome-wide
+  association analysis" Nat Genet 2019.
+
+** Installation
+
+   #+BEGIN_SRC sh :eval never
+     pip install git+https://www.github.com/aksarkar/mtlasso.git
+   #+END_SRC
+
+** Example
+
+   #+BEGIN_SRC ipython
+     import numpy as np
+     import pandas as pd
+     import sklearn.model_selection as skms
+
+     np.random.seed(0)
+     n = 500
+     p = 1000
+     m = 5
+
+     X = np.random.normal(size=(n, p))
+     B = np.zeros((p, m))
+     B[0,:] = np.random.normal(size=m, scale=scale)
+     Y = X @ B + np.random.normal(size=(n, m))
+
+     # c.f. https://github.com/scikit-learn/scikit-learn/blob/1495f69242646d239d89a5713982946b8ffcf9d9/sklearn/linear_model/coordinate_descent.py#L112
+     grid = np.geomspace(.1, 1, 10) * X.shape[0]
+     cv_scores = mtlasso.lasso.sparse_multi_task_lasso_cv(
+       X,
+       Y,
+       cv=skms.KFold(n_splits=5),
+       lambda1=grid,
+       lambda2=grid,
+       max_iter=500,
+       verbose=True)
+     cv_scores = pd.DataFrame(cv_scores)
+     cv_scores.columns = ['fold', 'lambda1', 'lambda2', 'mse']
+     lambda1, lambda2 = cv_scores.groupby(['lambda1', 'lambda2'])['mse'].agg(np.mean).idxmin()
+     Bhat = gtexpred.lasso.sparse_multi_task_lasso(X, Y, lambda1=lambda1, lambda2=lambda2)
+   #+END_SRC
