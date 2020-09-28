@@ -29,6 +29,7 @@ References:
      n = 500
      p = 1000
      m = 5
+     scale = 1
 
      X = np.random.normal(size=(n, p))
      B = np.zeros((p, m))
