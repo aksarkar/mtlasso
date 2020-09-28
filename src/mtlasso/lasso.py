@@ -85,7 +85,7 @@ def sparse_multi_task_lasso(X, Y, lambda1, lambda2, init=None, max_iter=100, ato
       return B
     else:
       obj = update
-  raise RuntimeError('failed to converge')
+  raise RuntimeError('failed to converge in max_iter')
 
 def sparse_multi_task_lasso_cv(X, Y, cv, lambda1=None, lambda2=None, verbose=False, **kwargs):
   """Tune penalty weights in sparse multi-task lasso"""
