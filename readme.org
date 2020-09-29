@@ -49,5 +49,5 @@ References:
      cv_scores = pd.DataFrame(cv_scores)
      cv_scores.columns = ['fold', 'lambda1', 'lambda2', 'mse']
      lambda1, lambda2 = cv_scores.groupby(['lambda1', 'lambda2'])['mse'].agg(np.mean).idxmin()
-     Bhat = mtlasso.lasso.sparse_multi_task_lasso(X, Y, lambda1=lambda1, lambda2=lambda2)
+     Bhat, B0hat = mtlasso.lasso.sparse_multi_task_lasso(X, Y, lambda1=lambda1, lambda2=lambda2)
    #+END_SRC

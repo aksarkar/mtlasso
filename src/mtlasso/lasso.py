@@ -31,8 +31,9 @@ References:
 """
 import numpy as np
 
-def sparse_multi_task_lasso(X, Y, lambda1, lambda2, init=None, max_iter=100, atol=1e-3, verbose=False):
-  """Fit sparse multi-task lasso for fixed penalty weights. Return B"""
+def sparse_multi_task_lasso(X, Y, lambda1, lambda2, init=None,
+                            fit_intercept=True, max_iter=100, atol=1e-3, verbose=False):
+  """Fit sparse multi-task lasso for fixed penalty weights"""
   if X.shape[0] != Y.shape[0]:
     raise ValueError(f'data shapes not aligned: {X.shape}, {Y.shape}')
   if lambda1 < 0:
@@ -48,9 +49,12 @@ def sparse_multi_task_lasso(X, Y, lambda1, lambda2, init=None, max_iter=100, ato
   if max_iter <= 0:
     raise ValueError('max_iter must be >= 0')
 
-  # Center the data
-  X -= X.mean(axis=0)
-  Y -= Y.mean(axis=0)
+  mx = X.mean(axis=0, keepdims=True)
+  my = Y.mean(axis=0, keepdims=True)
+  if fit_intercept:
+    # Important: copy X, Y
+    X = (X[:] - mx)
+    Y = (Y[:] - my)
 
   # Use Fortran (column-major) ordering to improve data locality
   X = np.asarray(X, order='F')
@@ -81,8 +85,8 @@ def sparse_multi_task_lasso(X, Y, lambda1, lambda2, init=None, max_iter=100, ato
     if verbose:
       print(f'{epoch}: {update}')
     if np.isclose(obj, update, atol=atol):
-      # Return coefficients on the original scale
-      return B
+      B0 = my - mx @ B
+      return B, B0
     else:
       obj = update
   raise RuntimeError('failed to converge in max_iter')
@@ -103,10 +107,15 @@ def sparse_multi_task_lasso_cv(X, Y, cv, lambda1=None, lambda2=None, verbose=Fal
       for a in lambda1:
         if verbose:
           print(f'fold {fold}: lambda1={a:.2g} lambda2={b:.2g}')
-        mx = X[train_idx].mean(axis=0)
-        my = Y[train_idx].mean(axis=0)
-        Bhat = sparse_multi_task_lasso(X[train_idx] - mx, Y[train_idx] - my, lambda1=a, lambda2=b, init=init, verbose=verbose, **kwargs)
-        score = _mse(X[test_idx] - mx, Y[test_idx] - my, Bhat)
+        Bhat, B0hat = sparse_multi_task_lasso(
+          X[train_idx],
+          Y[train_idx],
+          lambda1=a,
+          lambda2=b,
+          init=init,
+          verbose=verbose,
+          **kwargs)
+        score = _mse(X[test_idx], Y[test_idx] - B0hat, Bhat)
         scores.append((fold, a, b, score))
         init = Bhat
   return scores
