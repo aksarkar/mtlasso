@@ -19,8 +19,10 @@ def test_smtl_univariate_shape(simulate_univariate):
 def test_smtl_standardize_copy(simulate_univariate):
   X, Y, B = simulate_univariate
   mx = X.mean(axis=0)
+  sx = X.std(axis=0)
   Bhat, B0hat = mtlasso.lasso.sparse_multi_task_lasso(X, Y, lambda1=0, lambda2=0, atol=1e-8, verbose=True)
   assert np.isclose(X.mean(axis=0), mx).all()
+  assert np.isclose(X.std(axis=0), sx).all()
   assert Bhat.shape == (X.shape[1], 1)
   assert B0hat.shape == (1, Y.shape[1])
   assert np.isclose(mtlasso.lasso._mse(X, Y, Bhat), 0, atol=0.03)
@@ -29,6 +31,12 @@ def test_smtl_scale(simulate_univariate):
   X, Y, B = simulate_univariate
   Bhat0, B0hat0 = mtlasso.lasso.sparse_multi_task_lasso(X, Y, lambda1=0, lambda2=0, atol=1e-8, verbose=True)
   Bhat1, B0hat1 = mtlasso.lasso.sparse_multi_task_lasso(X / 2, Y, lambda1=0, lambda2=0, atol=1e-8, verbose=True)
+  assert np.isclose(2 * Bhat0, Bhat1).all()
+
+def test_smtl_scale_no_standardize(simulate_univariate):
+  X, Y, B = simulate_univariate
+  Bhat0, B0hat0 = mtlasso.lasso.sparse_multi_task_lasso(X, Y, lambda1=0, lambda2=0, atol=1e-8, standardize=False)
+  Bhat1, B0hat1 = mtlasso.lasso.sparse_multi_task_lasso(X / 2, Y, lambda1=0, lambda2=0, atol=1e-8, standardize=False)
   assert np.isclose(2 * Bhat0, Bhat1).all()
 
 def test_smtl_mle(simulate):

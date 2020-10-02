@@ -32,7 +32,8 @@ References:
 import numpy as np
 
 def sparse_multi_task_lasso(X, Y, lambda1, lambda2, init=None,
-                            fit_intercept=True, max_iter=100, atol=1e-3, verbose=False):
+                            fit_intercept=True, standardize=True, max_iter=100,
+                            atol=1e-3, verbose=False):
   """Fit sparse multi-task lasso for fixed penalty weights"""
   if X.shape[0] != Y.shape[0]:
     raise ValueError(f'data shapes not aligned: {X.shape}, {Y.shape}')
@@ -55,6 +56,13 @@ def sparse_multi_task_lasso(X, Y, lambda1, lambda2, init=None,
     # Important: copy X, Y
     X = (X[:] - mx)
     Y = (Y[:] - my)
+  if standardize:
+    sx = X.std(axis=0, keepdims=True)
+    # TODO: this can be an extra copy
+    X = X[:] / sx
+  else:
+    # Hack to simplify post-processing
+    sx = np.array(1)
 
   # Use Fortran (column-major) ordering to improve data locality
   X = np.asarray(X, order='F')
@@ -85,6 +93,7 @@ def sparse_multi_task_lasso(X, Y, lambda1, lambda2, init=None,
     if verbose:
       print(f'{epoch}: {update}')
     if np.isclose(obj, update, atol=atol):
+      B /= sx.T
       B0 = my - mx @ B
       return B, B0
     else:
