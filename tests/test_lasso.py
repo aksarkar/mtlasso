@@ -78,6 +78,27 @@ def test_smtl_masked(simulate):
   mse1 = mtlasso.lasso._mse(X, Y - B0hat, Bhat)
   assert mse1 <= mse0
 
+def test_smtl_masked_nan(simulate):
+  X, Y, B = simulate
+  Z = np.random.uniform(size=Y.shape) < 0.1
+  Y[Z] = np.nan
+  Y = np.ma.fix_invalid(Y)
+  mse0 = mtlasso.lasso._mse(X, Y, B)
+  Bhat, B0hat = mtlasso.lasso.sparse_multi_task_lasso(X, Y, lambda1=0, lambda2=0)
+  mse1 = mtlasso.lasso._mse(X, Y - B0hat, Bhat)
+  assert mse1 <= mse0
+
+def test_smtl_masked_nan_fill_zero(simulate):
+  X, Y, B = simulate
+  Z = np.random.uniform(size=Y.shape) < 0.1
+  Y[Z] = np.nan
+  Y1 = np.ma.masked_array(np.ma.masked_invalid(Y).filled(0), mask=Z)
+  Bhat1, B0hat1 = mtlasso.lasso.sparse_multi_task_lasso(X, Y1, lambda1=0, lambda2=0)
+  Y2 = np.ma.masked_array(np.ma.masked_invalid(Y).filled(), mask=Z)
+  Bhat2, B0hat2 = mtlasso.lasso.sparse_multi_task_lasso(X, Y2, lambda1=0, lambda2=0)
+  assert np.isclose(Bhat1, Bhat2).all()
+  assert np.isclose(B0hat1, B0hat2).all()
+
 def test_smtl_lasso_cv(simulate):
   X, Y, B = simulate
   Xt, Xv, Yt, Yv = skms.train_test_split(X, Y, test_size=0.2)

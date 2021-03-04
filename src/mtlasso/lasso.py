@@ -69,7 +69,13 @@ def sparse_multi_task_lasso(X, Y, lambda1, lambda2, init=None,
 
   # Pre-compute necessary quantities
   d = np.diag(X.T.dot(X))
-  R = np.asarray(Y - X.dot(B), order='F')
+  if np.ma.is_masked(Y):
+    # Important: Y - XB needs to be set to 0 wherever Y was missing for the dot
+    # products below to be correct (equal to keeping R masked)
+    R = np.where(Y.mask, 0, Y - X.dot(B))
+    R = np.asarray(R, order='F')
+  else:
+    R = np.asarray(Y - X.dot(B), order='F')
   l2_sq = np.square(B).sum(axis=1)
 
   obj = _mse(X, Y, B)
